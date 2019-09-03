@@ -10,7 +10,7 @@ import Foundation
 import UIKit
 
 public protocol  LabelSwitchDelegate : class {
-    func switchChangToState(sender: LabelSwitch) -> Void
+    func switchChangToState(_ state: LabelSwitchState) -> Void
 }
 
 private class LabelSwitchPart {
@@ -151,14 +151,14 @@ private class LabelSwitchPart {
             setupCircle()
         }
     }
-
+    
     public init(center: CGPoint,
-            leftConfig: LabelSwitchConfig,
-           rightConfig: LabelSwitchConfig,
-         circlePadding: CGFloat = 1,
-           minimumSize: CGSize = .zero,
-          defaultState: LabelSwitchState = .L) {
-
+                leftConfig: LabelSwitchConfig,
+                rightConfig: LabelSwitchConfig,
+                circlePadding: CGFloat = 4,
+                minimumSize: CGSize = .zero,
+                defaultState: LabelSwitchState = .L) {
+        
         self.circlePadding = circlePadding
         self.minimumSize = minimumSize
         self.curState = defaultState
@@ -169,7 +169,7 @@ private class LabelSwitchPart {
         setConfig(left: leftConfig, right: rightConfig)
         updateUI()
     }
-
+    
     private func updateUI() {
         calculateSize()
         switch curState {
@@ -178,16 +178,23 @@ private class LabelSwitchPart {
         }
     }
     
+    public func getState() ->Bool{
+        switch curState {
+        case .R: return false
+        case .L: return true
+        }
+    }
+    
     /// Calculate the bounds of the switch accourding to the label's text and font size
     private func calculateSize () {
         let circleMinimumSize = minimumSize.height - 2 * circlePadding
-        let circleSize = max(circleMinimumSize, max(switchConfigL.font.pointSize, switchConfigR.font.pointSize) * 2)
+        let circleSize = max(circleMinimumSize, max(switchConfigL.font.pointSize, switchConfigR.font.pointSize) * 2.5)
         edge = circleSize * 0.2
-       
+        
         let width = max(minimumSize.width, max(leftPart.label.bounds.width, rightPart.label.bounds.width) + 2 * edge + circleSize + 2 * circlePadding)
         calculatedSize = CGSize(width: width, height: circleSize + 2 * circlePadding)
     }
-
+    
     /// Calculate the left frame and right frame for the circle
     private func setupCircle() {
         let diameter = bounds.height - 2 * circlePadding
@@ -196,10 +203,10 @@ private class LabelSwitchPart {
         let circleSize = CGSize(width: diameter, height: diameter)
         
         stateL.circleFrame = CGRect(origin: CGPoint(x: circlePadding, y: circlePadding),
-                                      size: circleSize)
+                                    size: circleSize)
         
         stateR.circleFrame = CGRect(origin: CGPoint(x: bounds.width - diameter - circlePadding, y: circlePadding),
-                                      size: circleSize)
+                                    size: circleSize)
         /// Add the touch event to the circle view
         circleView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(switchTaped(sender:))))
     }
@@ -217,7 +224,7 @@ private class LabelSwitchPart {
     private func setupTextMask() {
         stateL.leftPartState.backMaskFrame = bounds.offsetBy(dx: -bounds.width, dy: 0)
         stateL.rightPartState.backMaskFrame = bounds
-
+        
         stateR.leftPartState.backMaskFrame = bounds
         stateR.rightPartState.backMaskFrame = bounds.offsetBy(dx: bounds.width, dy: 0)
     }
@@ -230,16 +237,30 @@ private class LabelSwitchPart {
     /// Called when the circle is touched
     @objc
     func switchTaped(sender: Any) {
-        UIView.animate(withDuration: 0.3) {
-            switch self.curState {
-            case .L:
-                self.delegate?.switchChangToState(sender: self)
-                self.curState = .R
-            case .R:
-                self.delegate?.switchChangToState(sender: self)
-                self.curState = .L
-            }
+        let transition = CATransition()
+        transition.duration = 0.15
+        transition.type = CATransitionType.fade
+        self.window!.layer.add(transition, forKey: kCATransition)
+        
+        switch self.curState {
+        case .L:
+            self.delegate?.switchChangToState(.R)
+            self.curState = .R
+        case .R:
+            self.delegate?.switchChangToState(.L)
+            self.curState = .L
         }
+        
+//        UIView.animate(withDuration: 0.3) {
+//            switch self.curState {
+//            case .L:
+//                self.delegate?.switchChangToState(.R)
+//                self.curState = .R
+//            case .R:
+//                self.delegate?.switchChangToState(.L)
+//                self.curState = .L
+//            }
+//        }
     }
     
     ///  Update view's frame by UI state
@@ -250,7 +271,7 @@ private class LabelSwitchPart {
         backgroundColor = state.backgroundColor
     }
     
- 
+    
     ///  For InterfaceBuilder
     @IBInspectable var lBackColor: UIColor = .white {
         didSet{
@@ -301,7 +322,7 @@ private class LabelSwitchPart {
     required public init?(coder aDecoder: NSCoder) {
         self.switchConfigL = LabelSwitchConfig.defaultLeft
         self.switchConfigR = LabelSwitchConfig.defaultRight
-        self.circlePadding = 1
+        self.circlePadding = 6
         self.minimumSize = .zero
         self.curState = .L
         super.init(coder: aDecoder)
@@ -326,7 +347,7 @@ private class LabelSwitchPart {
         if heightLayout != nil {
             removeConstraint(heightLayout!)
         }
-       
+        
         widthLayout = NSLayoutConstraint(item: self,
                                          attribute: .width,
                                          relatedBy: .equal,
